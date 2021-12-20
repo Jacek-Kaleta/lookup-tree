@@ -1,0 +1,10 @@
+Maps
+	here.com||https://wego.here.com
+	google|https://maps.google.com
+	mapy.cz||https://mapy.cz
+	openstreetmap||https://www.openstreetmap.org
+Chat
+	Skype||https://web.skype.com
+	Telegram||https://web.telegram.org
+	Wire||https://app.wire.com
+	Whatsup||https://web.whatsapp.com

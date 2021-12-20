@@ -1,0 +1,215 @@
+<style>
+    ul {
+        list-style: none;
+        margin-left: 0;
+        padding-left: 0;
+    }
+    
+    ul {
+        font-size: 1.05em;
+        font-weight: bold;
+    }
+    
+    li {
+        padding-left: 3em;
+        text-indent: -3em;
+        font-weight: 100
+    }
+    
+    li:before {
+        content: " ";
+        padding-right: 5px;
+    }
+    
+    ul {
+        margin-bottom: 0.5em;
+        margin-top: 0.1em;
+    }
+    
+    .b {
+        background-color: red;
+    }
+    
+    input {
+        font-size: 1.5em;
+        width: 50%;
+        padding: 0.2em;
+        margin-bottom: 1em;
+        margin-top: 1em;
+        -webkit-box-shadow: 5px 5px 5px 5px #000000;
+        box-shadow: 1px 1px 10px 3px #b3b3b3;
+        font-family: cursive;
+    }
+    
+    #main {
+        padding-left: 5em;
+        padding-right: 5em;
+        font-size: 1.3em;
+        font-family: cursive;
+    }
+    
+    a {
+        text-decoration: none;
+    }
+    
+    ul>li>ul> {
+        color: red;
+    }
+</style>
+
+<body>
+    <center>
+        <input length="10" type="text" id="inputBox" placeholder="Enter substring ..">
+    </center>
+
+    <div id="main">
+        Nothing is here
+    </div>
+
+    <script>
+        tab2ulli = function(text, param) {
+            if (param == undefined) param = {}
+            if (param.cr == undefined) param.cr = '\r\n';
+            if (param.onError == undefined)
+                param.onError = function(error, line) {
+                    return {
+                        error,
+                        line
+                    }
+                }
+
+            let lines = text.split(param.cr);
+            let i = -1;
+            return processlines(0);
+
+            function linelength(i) {
+                if (i >= lines.length) return 0;
+                let line = lines[i];
+                if (line.trim().length == 0) return 0;
+                return (line.match(/^\t*/))[0].length;
+            }
+
+            function getline(i) {
+                if (i >= lines.length) return "";
+                return lines[i].trim();
+            }
+
+            function processlink(line) {
+                let ln = line.split("||");
+                if (ln.length > 1) {
+                    if (ln.length == 0) return "";
+                    if (ln.length == 1) return ln[0];
+                    return "<a href='" + ln[1] + "' target='+blank'>" + ln[0] + "</a>";
+                }
+                ln = line.split("|");
+                if (ln.length == 0) return "";
+                if (ln.length == 1) return ln[0];
+                return "<a href='" + ln[1] + "'>" + ln[0] + "</a>";
+            }
+
+            function processlines(d) {
+                let text = "";
+                i++;
+                text += "<ul>\r\n";
+                while (i < lines.length && linelength(i) == d) {
+                    text += "<li>" + processlink(getline(i));
+                    let l = linelength(i + 1);
+                    if (l > d + 1) throw param.onError(2, i + 1);
+
+                    if (l == d + 1)
+                        text += processlines(d + 1);
+                    else
+                        i++;
+                    text += "</li>\r\n"
+                }
+                text += "</ul>\r\n";
+                return text;
+            };
+        }
+
+        function changeExt(file, ext) {
+            let pos = file.lastIndexOf(".");
+            return file.substr(0, pos < 0 ? file.length : pos) + "." + ext;
+        }
+
+        function changeFile(file, newfile) {
+            let pos = file.lastIndexOf("/");
+            return file.substr(0, pos < 0 ? file.length : pos) + "/" + newfile;
+        }
+
+
+        function getfile() {
+            let path = (window.location + "").split("#");
+            if (path.length == 2) file = changeFile(window.location + "", path[1]);
+            else file = changeExt(window.location + "", "txt");
+            return file
+        }
+
+        loadmenu(getfile());
+
+        window.onhashchange = function(arg) {
+            loadmenu(getfile());
+        }
+
+
+        function loadmenu(file) {
+            var client = new XMLHttpRequest();
+            client.open('GET', file);
+            client.onreadystatechange = function() {
+                /*console.log('client response');
+                console.log(client.responseText);
+                console.log(tab2ulli(client.responseText));*/
+                main.innerHTML = tab2ulli(client.responseText);
+            }
+            client.send();
+        }
+    </script>
+    <script>
+        let inputBox = document.querySelector("#inputBox");
+
+        inputBox.addEventListener("input", function() {
+            //console.log("Input value changed via UI. New value: '%s'", this.value);
+
+            let el = document.getElementById("main");
+            enumerateUL(el, this.value.toLowerCase())
+        });
+
+        function compare(text, value) {
+            return text.trim().toLowerCase().indexOf(value.toLowerCase()) >= 0
+        }
+
+        function enumerateUL(el, value) {
+            if (el.children.length != 1) return;
+            if (el.children[0].tagName != 'UL') return;
+            enumerateEL(el.children[0], value);
+        }
+
+        function enumerateEL(node, value) {
+            function getNodeText(node) {
+                if (node.firstChild.nodeName == '#text') return node.firstChild.nodeValue.trim();
+                if (node.firstChild.nodeName == 'A') return node.firstChild.innerText.trim();
+            }
+
+            function checkNode(q) {
+                for (let i = 0; i < q.length; i++)
+                    if (q[i].tagName == 'LI') {
+                        if (compare(getNodeText(q[i]), value)) {
+                            visibility(q[i], "block");
+                            enumerateUL(q[i], "");
+                        } else
+                        if (compare(q[i].innerText, value)) {
+                            visibility(q[i], "block");
+                            enumerateUL(q[i], value)
+                        } else
+                            visibility(q[i], "none");
+                    }
+            }
+            let r = node.children
+            checkNode(r);
+
+            function visibility(node, attrib) {
+                node.style.display = attrib;
+            }
+        }
+    </script>
+</body>
